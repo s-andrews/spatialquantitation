@@ -30,3 +30,28 @@ optional arguments:
   -h, --help  show this help message and exit
   --quiet     Suppress progress messages
 ```
+
+## Output
+The output of the script is a tab delimited file showing the genes (rows) vs cells (columns) and the raw overlap counts as data.
+
+```
+Gene    01:01   01:02   01:03   01:04   01:05   01:06   01:07   01:08
+5S_rRNA 0       0       0       1       0       0       1       0
+7SK     734     593     337     2205    663     1965    1209    933
+A1BG    0       2       0       6       0       0       0       1
+A1CF    0       0       0       0       0       0       0       0
+A2M     0       0       0       1       2       0       0       1
+A2M-AS1 0       0       0       0       0       0       0       0
+A2ML1   12      4       16      17      11      10      0       3
+A2MP1   6       3       3       15      7       4       6       9
+A3GALT2 0       0       0       0       0       0       0       0
+A4GALT  42      13      17      38      21      24      15      30
+AAAS    9       3       5       33      2       38      4       14
+AACS    39      5       8       16      7       24      5       8
+AACSP1  0       0       0       0       0       0       0       0
+AADAC   0       0       0       0       0       0       0       1
+AADACL2 0       0       0       0       0       0       0       0
+AADACL3 7       1       4       0       0       0       0       0
+AADACL4 0       0       0       0       0       0       0       0
+```
+
