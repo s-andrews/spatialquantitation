@@ -15,6 +15,8 @@ A00489.3.1166.25382.6464:23:20:23:02:CTGAGTAT
 Where X is the cell ID (x,y coordinates for the spatial barcoding) and Y is the UMI sequence.
 
 ## Usage
+The input must be a BAM file which is positionally sorted.  An index file is not required.
+
 ```
 $ ./quantitate_spatial_scrna.py  --help
 usage: quantitate_spatial_scrna.py [-h] [--quiet] gtf_file bam_file outfile
@@ -30,6 +32,17 @@ optional arguments:
   -h, --help  show this help message and exit
   --quiet     Suppress progress messages
 ```
+
+## Installation
+Simply doing a ```git clone``` of this repository will get you the main python script for the quantitation.
+
+The script requires python >= 3.7.
+
+The only package requirement outside the standard library is [pysam](https://github.com/pysam-developers/pysam).  This can be installed with:
+
+```python3 -m pip install pysam```
+
+This package is only available on unix operating systems so this script will not work on windows.
 
 ## Output
 The output of the script is a tab delimited file showing the genes (rows) vs cells (columns) and the raw overlap counts as data.
