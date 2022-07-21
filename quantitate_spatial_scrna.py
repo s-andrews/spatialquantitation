@@ -155,42 +155,51 @@ def parse_gtf(file):
     gene_count = 0
     failed_count = 0
 
-    with gzip.open(file,"rt", encoding="utf8") as infh:
-        for line in infh:
-            if line.startswith("#"):
-                continue
+    infh = None
 
-            sections = line.strip().split("\t")
+    if file.lower().endswith(".gz"):
+        infh = gzip.open(file,"rt", encoding="utf8")
 
-            if sections[2] != "gene":
-                continue
+    else:
+        infh = open(file,"rt",encoding="utf-8")
 
-            chromosome = sections[0]
-            start = int(sections[3])
-            end = int(sections[4])
-            is_reverse = sections[6] == "-"
-            name = None
+    for line in infh:
+        if line.startswith("#"):
+            continue
 
-            ##### TESTING ONLY #####
+        sections = line.strip().split("\t")
+
+        if sections[2] != "gene":
+            continue
+
+        chromosome = sections[0]
+        start = int(sections[3])
+        end = int(sections[4])
+        is_reverse = sections[6] == "-"
+        name = None
+
+        ##### TESTING ONLY #####
 #            if chromosome != "1":
 #                break
 
-            annotations = sections[8].split(";")
-            for annot in annotations:
-                if annot.strip().startswith("gene_name"):
-                    name = annot.strip().split(" ",2)[1].replace("\"","").strip()
-                    break
+        annotations = sections[8].split(";")
+        for annot in annotations:
+            if annot.strip().startswith("gene_name"):
+                name = annot.strip().split(" ",2)[1].replace("\"","").strip()
+                break
 
-            if name is None:
-                failed_count += 1
-                continue
-            else:
-                gene_count += 1
+        if name is None:
+            failed_count += 1
+            continue
+        else:
+            gene_count += 1
 
-            if not chromosome in genes:
-                genes[chromosome] = []
+        if not chromosome in genes:
+            genes[chromosome] = []
 
-            genes[chromosome].append({"start":start, "end":end, "is_reverse": is_reverse, "name":name})
+        genes[chromosome].append({"start":start, "end":end, "is_reverse": is_reverse, "name":name})
+
+    infh.close()
 
     # It looks like the genes aren't listed in order in the gtf file so
     # we need to fix that.
