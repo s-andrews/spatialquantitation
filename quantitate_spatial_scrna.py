@@ -128,7 +128,9 @@ def count_overlaps(file,genes):
                 else:
                     umi += str(read.reference_start)
 
-                cell_id = ":".join(sections[-3:-1])
+                # We take the number of barcode sections from the options
+                cell_id = ":".join(sections[(-1 - options.barcodes):-1])
+                
                 if not cell_id in counts:
                     cell_count += 1
                     counts[cell_id] = {}
@@ -231,6 +233,7 @@ def get_options():
     parser.add_argument("outfile", type=str, help="The output file to write to")
 
     parser.add_argument("--quiet",action="store_true", default=False, help="Suppress progress messages")
+    parser.add_argument("--barcodes",type=int, default=4, help="Number of embedded barcodes in cell id")
 
     return(parser.parse_args())
 

@@ -1,6 +1,6 @@
-# Spatial Transcriptomics Quantitation
+# Multi-barcoding Single Cell Quantitation
 
-This is a program which takes in a mapped BAM file from a 10X style 2D spatial transcriptomics dataset where the cell identity has been embedded into the read ID.  It produces a count matrix from a GTF file of gene annotations.
+This is a program which takes in a mapped BAM file from a 10X style transcriptomics dataset labelled with multiple rounds of barcodes, where the cell identity has been embedded into the read ID.  It produces a count matrix from a GTF file of gene annotations.
 
 The mapping of reads to genes is done from the gene level, counting both exonic and intronic overlaps.  The association is directional, requiring that the read and gene are in the same orientiation.  The program uses the position of the match along with the sequence of the embedded UMI to deduplicate the counts.
 
@@ -9,10 +9,10 @@ The program is designed to work with single-end mapped data where the read IDs h
 
 ```
 A00489.3.1166.25382.6464:23:20:23:02:CTGAGTAT
-                               XXXXX YYYYYYYY
+                         XXXXXXXXXXX YYYYYYYY
 ```
 
-Where X is the cell ID (x,y coordinates for the spatial barcoding) and Y is the UMI sequence.
+Where X is the cell ID and Y is the UMI sequence.
 
 ## Usage
 The input must be a BAM file which is positionally sorted.  An index file is not required.
