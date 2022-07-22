@@ -2,6 +2,7 @@
 import gzip
 import argparse
 import sys
+from pathlib import Path
 import pysam
 
 def main():
@@ -10,11 +11,69 @@ def main():
     genes = parse_gtf(options.gtf_file)
 
     counts = count_overlaps(options.bam_file,genes)
-    write_output(counts,options.outfile)
 
-def write_output(counts, outfile):
+    if options.output == "matrix":
+        write_matrix_output(counts,options.outfile)
+
+    elif options.output == "sparse":
+        write_sparse_output(counts,genes,options.outfile)
+
+def write_sparse_output(counts, allgenes, outdir):
     if not options.quiet:
-        print("Writing counts to",outfile, file=sys.stderr)
+        print("Writing counts to sparse folder",outdir, file=sys.stderr)
+
+    # Create the folder if it doesn't exist
+    outpath = Path(outdir)
+    outpath.mkdir(parents=True, exist_ok=True)
+
+    # Collect the full list of genes
+    genes = set()
+    item_count = 0
+    for cell in counts.keys():
+        for gene in counts[cell].keys():
+            item_count += 1
+            genes.add(gene)
+
+    genes = sorted(list(genes))
+
+    # Get the mapping of genes to ids
+    genes_to_ids = {}
+    for chr in allgenes.keys():
+        for gene in allgenes[chr]:
+            genes_to_ids[gene["name"]] = gene["id"]
+
+    # Write out the feature list
+    with gzip.open(outpath / "features.tsv.gz", "wt", encoding="utf-8") as out:
+        for gene in genes:
+            line = [genes_to_ids[gene], gene, "Gene Expression"]
+            print("\t".join(line), file=out)
+
+    # Collect all of the cell ids
+    cell_ids = sorted(list(counts.keys()))
+
+    # Write out the cell list
+    with gzip.open(outpath / "barcodes.tsv.gz", "wt", encoding="utf-8") as out:
+        for cell_id in cell_ids:
+            print(cell_id, file=out)
+
+    # Write out the counts as sparse values
+    with gzip.open(outpath / "matrix.mtx.gz", "wt", encoding="utf-8") as out:
+        print("%%MatrixMarket matrix coordinate integer general", file=out)
+        print("%metadata_json: {\"software_version\": \"quantitate_splitpool_scrna\", \"format_version\": 2}", file=out)
+
+        # Print totals of rows(genes), columns(cells), entries(measures)
+        line = [len(genes),len(cell_ids),item_count]
+        print("\t".join([str(x) for x in line]), file=out)
+
+        for i,cell in enumerate(cell_ids):
+            for j,gene in enumerate(genes):
+                if gene in counts[cell]:
+                    line = [j+1,i+1,len(counts[cell][gene])]
+                    print("\t".join([str(x) for x in line]),file=out)
+
+def write_matrix_output(counts, outfile):
+    if not options.quiet:
+        print("Writing counts to matrix",outfile, file=sys.stderr)
 
     # Collect the full list of genes
     genes = set()
@@ -61,11 +120,9 @@ def count_overlaps(file,genes):
     pysam.set_verbosity(save)
 
     # We're going to keep track of what we've seen in this structure
-    # we index by cell identity then record the UMIs we've seen for
+    # we index by cell identity then record the Position+UMIs we've seen for
     # each gene so we can deduplicate
-    #
-    # TODO: We should check whether we need to store position as well
-    # as UMI
+
     counts = {}
 
     current_chromosome = ""
@@ -75,6 +132,13 @@ def count_overlaps(file,genes):
     cell_count = 0
 
     for x,read in enumerate(bamfile.fetch(until_eof=True)):
+        if x%100000 == 0:
+            print("Searched",x,"reads",file=sys.stderr)
+
+        # TESTING
+        #if x==1000000:
+        #    break
+
         chromosome = read.reference_name
         if chromosome.lower().startswith("chr"):
             chromosome = chromosome[3:]
@@ -138,7 +202,6 @@ def count_overlaps(file,genes):
                 if not chr_genes[i]["name"] in counts[cell_id]:
                     counts[cell_id][chr_genes[i]["name"]] = set()
 
-
                 if umi in counts[cell_id][chr_genes[i]["name"]]:
                     continue
 
@@ -179,27 +242,37 @@ def parse_gtf(file):
         end = int(sections[4])
         is_reverse = sections[6] == "-"
         name = None
+        id = None
 
         ##### TESTING ONLY #####
-#            if chromosome != "1":
-#                break
+        #if chromosome != "1":
+        #    break
 
         annotations = sections[8].split(";")
         for annot in annotations:
+            if annot.strip().startswith("gene_id"):
+                id = annot.strip().split(" ",2)[1].replace("\"","").strip()
+
             if annot.strip().startswith("gene_name"):
                 name = annot.strip().split(" ",2)[1].replace("\"","").strip()
+                
+            if name is not None and id is not None:
                 break
 
         if name is None:
             failed_count += 1
             continue
+
+        if id is None:
+            raise Exception("Couldn't find a gene id in '"+line+"'")
+
         else:
             gene_count += 1
 
         if not chromosome in genes:
             genes[chromosome] = []
 
-        genes[chromosome].append({"start":start, "end":end, "is_reverse": is_reverse, "name":name})
+        genes[chromosome].append({"start":start, "end":end, "is_reverse": is_reverse, "name":name, "id":id})
 
     infh.close()
 
@@ -230,10 +303,11 @@ def get_options():
 
     parser.add_argument("gtf_file", type=str, help="The GTF file of features")
     parser.add_argument("bam_file", type=str, help="The BAM file to quantitate")
-    parser.add_argument("outfile", type=str, help="The output file to write to")
+    parser.add_argument("outfile", type=str, help="The output file (matrix) or folder (sparse) to write to")
 
     parser.add_argument("--quiet",action="store_true", default=False, help="Suppress progress messages")
     parser.add_argument("--barcodes",type=int, default=4, help="Number of embedded barcodes in cell id")
+    parser.add_argument("--output", type=str, default="matrix", help="The format of the output - matrix(default) or sparse")
 
     return(parser.parse_args())
 
