@@ -238,6 +238,9 @@ def parse_gtf(file):
             continue
 
         chromosome = sections[0]
+        if chromosome.lower().startswith("chr"):
+            chromosome = chromosome[3:]
+
         start = int(sections[3])
         end = int(sections[4])
         is_reverse = sections[6] == "-"
